@@ -3,7 +3,7 @@
   <head> 
     <title>Websockets Assignment</title> 
     <meta charset="utf-8" /> 
-    <meta content='width=device-width; height=device-height; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;' name='viewport' />
+    <meta content='width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
     <meta name="viewport" content="width=device-width" />
     <meta name="license" content="
         Copyright 2013 Google, Abram Hindle
@@ -47,7 +47,7 @@ world = {};
 //XXX: TODO Make this prettier!
 function drawCircle(context,entity) {
     with(context) {
-        beginPath();                
+        beginPath();              
         lineWidth = 3;
         var x = entity["x"];
         var y = entity["y"];
@@ -55,7 +55,7 @@ function drawCircle(context,entity) {
         fillStyle = entity["colour"];
         strokeStyle = fillStyle;
         arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);  
-        stroke();                                
+        fill();                                
     }
 }
 
@@ -64,7 +64,7 @@ function prepEntity(entity) {
         entity["colour"] = "#FF0000";
     }
     if (!entity["radius"]) {
-        entity["radius"] = 50;
+        entity["radius"] = 20;
     }
     return entity;
 }
@@ -125,7 +125,13 @@ function addEntity(entity, data) {
     world[entity] = data;
     drawNextFrame(); // (but should we?)
     //XXX: Send a XHTML Request that updates the entity you just modified!
+    socket.send(JSON.stringify({[entity]: data}));
 }
+function updateEntity(entity, data) {
+    world[entity] = data;
+    drawNextFrame();
+}
+
 var counter = 0;
 function addEntityWithoutName(data) {
     var name = "X"+(counter++)%100;
@@ -228,19 +234,24 @@ mouse = (function() {
     return self;
 })();
 
+// http://stackoverflow.com/questions/1527803/generating-random-whole-numbers-in-javascript-in-a-specific-range
+function getRandomNumber(min, max) {
+    return Math.random() * (max - min) + min;
+}
+
 // Add the application specific mouse listeners!
 //XXX: TODO Make these prettier!
 mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'red','radius':30});
 });
 
 mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'red'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'red','radius':10});
 });
 
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'green',
-                          'radius':10});
+    addEntityWithoutName({'x':x,'y':y,'colour':'red',
+                          'radius':getRandomNumber(20,25)});
 });
 
 
@@ -260,8 +271,11 @@ function wsSetup() {
     };
     socket.onmessage = function(msg) {  
         try {
-            debug("WebSocket Recv:" + msg.data);
-            //XXX: TODO What are you going to do here?            
+            // debug("WebSocket Recv:" + msg.data);
+            obj = JSON.parse(msg.data);
+            for (key in obj) {
+                updateEntity(key, obj[key]);
+            }
         } catch (e) {
             alert("socket on message: " + e);
         }
